@@ -1,0 +1,72 @@
+import heapq
+def greedy_best_first_search(maze,start,goal):
+  rows,cols=len(maze_grid),len(maze_grid[0])
+  def manhattan(a,b):
+    return abs(a[0]-b[0])+abs(a[1]-b[1])
+  open_list=[(manhattan(start,goal),start,[start])]
+  nodes_expanded=0
+  visited={start}
+  while open_list:
+    h,current,path=heapq.heappop(open_list)
+    nodes_expanded+=1
+    if current==goal:
+      return path,nodes_expanded
+    r,c=current
+    for dr,dc in [(-1,0),(1,0),(0,-1),(0,1)]:
+      nr,nc=r+dr,c+dc
+      if(0<=nr<rows and 0<=nc<cols and maze[nr][nc]==0 and (nr,nc) not in visited):
+         visited.add((nr,nc))
+         h_val=manhattan((nr,nc),goal)
+         heapq.heappush(open_list,(h_val,(nr,nc),path+[(nr,nc)]))
+  return None,nodes_expanded
+
+maze_grid = [
+[0, 0, 0, 0, 0],
+[0, 1, 1, 1, 0],
+[0, 0, 0, 1, 0],
+[1, 1, 0, 0, 0],
+[0, 0, 0, 1, 0]
+]
+start=(0,0)
+goal=(4,4)
+path,nodes_expanded=greedy_best_first_search(maze_grid,start,goal)
+print("Path:",path)
+print("Nodes Expanded:",nodes_expanded)
+
+
+import numpy as np
+import random
+grid_size=4
+goal_state=(3,3)
+obstacles=[(1,1),(2,2)]
+alpha=0.1
+gamma=0.9
+epsilon=0.2
+episodes=500
+q_table=np.zeros((grid_size,grid_size,4))
+actions=[(-1,0),(1,0),(0,-1),(0,1)]
+def step(state,action_idx):
+  dr,dc=actions[action_idx]
+  new_r,new_c=state[0]+dr,state[1]+dc
+  if new_r<0 or new_r>=grid_size or new_c<0 or new_c>=grid_size:
+    return state,-1,False
+  new_state=(new_r,new_c)
+  if new_state in obstacles:
+    return state,-10,False
+  if new_state==goal_state:
+    return new_state,10,True
+  return new_state,-1,False
+for episodes in range(episodes):
+  state=(0,0)
+  done=False
+  while not done:
+    if random.uniform(0,1)<epsilon:
+      action=random.randint(0,3)
+    else:
+      action=np.argmax(q_table[state[0],state[1]])
+    new_state,reward,done=step(state,action)
+    best_future_q=np.max(q_table[new_state[0],new_state[1]])
+    q_table[state[0],state[1],action]+=alpha*(reward+gamma*best_future_q-q_table[state[0],state[1],action])
+    state=new_state
+print("Training Finished:",q_table.shape)
+print(q_table)
